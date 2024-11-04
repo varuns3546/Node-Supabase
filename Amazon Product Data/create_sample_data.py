@@ -9,7 +9,7 @@ load_dotenv()
 
 app = FastAPI()
 
-MONGO_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
+MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING")
 
 app.mongodb_client = MongoClient(MONGO_CONNECTION_STRING)
 
@@ -30,12 +30,10 @@ sample_data = [
     for i in range(1, 101)
 ]
 
-amzn_product_data.insert_many(sample_data)
-"""
-result = amzn_product_data.delete_many({})
-
-print(result)
-"""
+amzn_product_data.delete_many({})
+print("deleted all data")
+#amzn_product_data.insert_many(sample_data)
+#print('replaced all data with sample data')
 
 
 app.mongodb_client.close()

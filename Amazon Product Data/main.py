@@ -7,16 +7,16 @@ load_dotenv()
 
 app = FastAPI
 
-MONGO_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
+MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING")
 
 app.mongodb_client = MongoClient(MONGO_CONNECTION_STRING)
 
-app.database = app.mongodb_client["sample_mflix"]
+app.database = app.mongodb_client["productData"]
 
-movies = app.database["movies"]
+amzn_product_data = app.database["amazonProductData"]
 
+# amzn_product_data.delete_many({})
+# amzn_product_data.insert_many(sample_data)
 
-for movie in movies.find():
-    print(movie)
-
+app.mongodb_client.close()
 
