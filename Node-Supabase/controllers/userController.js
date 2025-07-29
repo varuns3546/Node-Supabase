@@ -1,52 +1,70 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import asyncHandler from 'express-async-handler';
-import { v4 as uuidv4 } from 'uuid';
-import userService from '../services/userService.js';
-const {createUser, getUsers, getUserById, getUserByEmail, updateUser, deleteUser, searchUsers} = userService
+import supabaseClient from '../config/supabaseClient.js';
+const {supabase, supabaseAdmin} = supabaseClient
+
 const registerUser = asyncHandler(async (req, res) => {
     const {firstName, lastName, email, password, orgPassword} = req.body
-
+    console.log('attempting register')
     if(!firstName || !lastName || !email || !password || !orgPassword){
         res.status(400)
         throw new Error('Please add all fields')
     }
 
-    const userExists = await getUserByEmail(email)
-    console.log('userExists', userExists)
-
-    if(userExists){        
-        res.status(400)
-        throw new Error('User already exists')
-    }
-
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(password, salt)
-
-    const user = await createUser({
-        id: uuidv4(),
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-        accountType: 'client'
-    })
-
-    if(user){
-        console.log('Success registering', user.firstName)
-        res.status(201).json({
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            accountType: user.accountType,
-            token: generateToken(user.id)
-        })
-    } else {
-        res.status(400)
-        throw new Error('Invalid user data')
+    const ORG_PASSWORDS = {
+        [process.env.ORG_PASSWORD_CLIENT]: 'client',
+        [process.env.ORG_PASSWORD_MAIN_CONSULTANT]: 'main_consultant',
+        [process.env.ORG_PASSWORD_SUB_CONSULTANT]: 'sub_consultant',
     }
     
+    const role = ORG_PASSWORDS[orgPassword] || null; // Fixed: use orgPassword instead of inputPassword
+
+    if(role === null){
+        res.status(400)
+        throw new Error('Enter a valid org password')
+    }
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: {
+                firstName: firstName,
+                lastName: lastName,
+            }
+        }
+    })
+    
+    if (signUpError) {
+        res.status(400)
+        throw new Error(`Signup Error: ${signUpError.message}`)
+    }
+
+    const userId = signUpData.user.id
+
+    // 2. Update the user's app_metadata with role
+    const { data, error: setRoleError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        app_metadata: { role }
+    })
+
+    if (setRoleError) {
+        res.status(400)
+        throw new Error(`Role assignment error: ${setRoleError.message}`)
+    }
+
+    // Send success response
+    res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        user: {
+            id: userId,
+            email: signUpData.user.email,
+            firstName: firstName,
+            lastName: lastName,
+            role: role
+        }
+    })
 })
 
 const loginUser = asyncHandler(async (req, res) => {
