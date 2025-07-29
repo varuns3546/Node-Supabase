@@ -1,0 +1,10 @@
+# Cursor ignore file
+# Allow .env files (negative pattern)
+!.env
+!.env.*
+
+# Common patterns to ignore
+node_modules/
+*.log
+.DS_Store
+Thumbs.db 
