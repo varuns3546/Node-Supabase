@@ -18,4 +18,20 @@ const supabaseAdmin = createClient( supabaseURL, supabaseServiceRoleKey
   }
 })
 
-export default {supabase, supabaseAdmin};
+const createUserClient = (token) => {
+  return createClient(
+    supabaseURL, 
+    supabaseAnonKey, 
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    }
+  );
+};
+
+
+
+export default {supabase, supabaseAdmin, createUserClient};
